@@ -56,12 +56,6 @@ void battery_card_check()
         if (cnt >= 20)
         {
             int16_t voltage = PowerManager_getBatteryVoltage();
-            if (voltage > 0)
-            {
-                LOCKLV();
-                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d%", (voltage - EMPTY_VOLTAGE) / 1000 * 100);
-                UNLOCKLV();
-            }
             bool charging = PowerManager_isCharging();
             if (charging != last_charging)
             {
@@ -78,6 +72,10 @@ void battery_card_check()
                 {
                     LOCKLV();
                     card_Battery.size(BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT);
+                    if (voltage > 0)
+                    {
+                        lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d%%", (voltage - EMPTY_VOLTAGE) % 1000 / 10);
+                    }
                     lv_obj_fade_out(img_bolt, 300, 0);
                     UNLOCKLV();
                 }
