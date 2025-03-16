@@ -6,8 +6,8 @@
 #define BATTERY_CARD_WIDTH_CHARGING (56 + 12)
 #define BATTERY_CARD_HEIGHT 33
 // 定义满电和空电的电压值（单位：毫伏）
-const float FULL_VOLTAGE = 4200; // 例如，4.2V
-const float EMPTY_VOLTAGE = 3200; // 例如，3.2V
+const int16_t FULL_VOLTAGE = 4200; // 例如，4.2V
+const int16_t EMPTY_VOLTAGE = 3200; // 例如，3.2V
 extern "C" const lv_img_dsc_t bolt;
 
 static MyCard card_Battery;
