@@ -5,6 +5,9 @@
 #define BATTERY_CARD_WIDTH 56
 #define BATTERY_CARD_WIDTH_CHARGING (56 + 12)
 #define BATTERY_CARD_HEIGHT 33
+// 定义满电和空电的电压值（单位：毫伏）
+const float FULL_VOLTAGE = 4200; // 例如，4.2V
+const float EMPTY_VOLTAGE = 3200; // 例如，3.2V
 extern "C" const lv_img_dsc_t bolt;
 
 static MyCard card_Battery;
@@ -19,7 +22,7 @@ static void battery_card_construct(lv_obj_t *parent)
     lv_obj_t *lbl_battery = lv_label_create(parent);
     lv_obj_set_align(lbl_battery, LV_ALIGN_TOP_LEFT);
     lv_obj_set_x(lbl_battery, -7);
-    lv_label_set_text(lbl_battery, "0.00V");
+    lv_label_set_text(lbl_battery, "0%");
     img_bolt = lv_img_create(parent);
     lv_img_set_src(img_bolt, &bolt);
     lv_obj_set_pos(img_bolt, 36, 2);
@@ -40,8 +43,6 @@ void battery_card_check()
 {
     static int cnt = 0;
     static bool last_charging = false;
-    if (current_mode == MODE_MAINMENU)
-    {
         if (expanded == false)
         {
             expanded = true;
@@ -58,7 +59,7 @@ void battery_card_check()
             if (voltage > 0)
             {
                 LOCKLV();
-                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d.%02dV", voltage / 1000, voltage % 1000 / 10);
+                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d%", map(voltage, EMPTY_VOLTAGE / 1000.0, FULL_VOLTAGE / 1000.0, 0, 100));
                 UNLOCKLV();
             }
             bool charging = PowerManager_isCharging();
@@ -69,6 +70,7 @@ void battery_card_check()
                 {
                     LOCKLV();
                     card_Battery.size(BATTERY_CARD_WIDTH_CHARGING, BATTERY_CARD_HEIGHT);
+                    lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d.%02dV", voltage / 1000, voltage % 1000 / 10);
                     lv_obj_fade_in(img_bolt, 500, 0);
                     UNLOCKLV();
                 }
@@ -82,15 +84,4 @@ void battery_card_check()
             }
             cnt = 0;
         }
-    }
-    else
-    {
-        if (expanded)
-        {
-            expanded = false;
-            LOCKLV();
-            card_Battery.move(BATTERY_CARD_X, BATTERY_CARD_HIDE_Y);
-            UNLOCKLV();
-        }
-    }
 }
