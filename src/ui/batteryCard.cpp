@@ -3,7 +3,7 @@
 #define BATTERY_CARD_SHOW_Y -13
 #define BATTERY_CARD_HIDE_Y -43
 #define BATTERY_CARD_WIDTH 42
-#define BATTERY_CARD_WIDTH_CHARGING (42 + 12)
+#define BATTERY_CARD_WIDTH_CHARGING (56 + 12)
 #define BATTERY_CARD_HEIGHT 33
 // 定义满电和空电的电压值（单位：毫伏）
 const int16_t FULL_VOLTAGE = 4200; // 例如，4.2V
