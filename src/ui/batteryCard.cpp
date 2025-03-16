@@ -5,9 +5,12 @@
 #define BATTERY_CARD_WIDTH 42
 #define BATTERY_CARD_WIDTH_CHARGING (56 + 12)
 #define BATTERY_CARD_HEIGHT 33
-// 定义满电和空电的电压值（单位：毫伏）
-const int16_t FULL_VOLTAGE = 4200; // 例如，4.2V
-const int16_t EMPTY_VOLTAGE = 3200; // 例如，3.2V
+
+const int numReadings = 10; // 读取次数以取平均值，减少噪声
+
+// 电池参数（根据实际电池调整）
+const float maxVoltage = 4.2f; // 锂电池满电电压（V）
+const float minVoltage = 3.0f; // 锂电池低电量电压（V）
 extern "C" const lv_img_dsc_t bolt;
 
 static MyCard card_Battery;
@@ -39,6 +42,22 @@ static void battery_card_create()
     }
 }
 
+// 根据电压估算电量百分比
+float mapVoltageToPercentage(float voltage) {
+  // 简单线性映射（实际电池电压-电量曲线可能更复杂）
+  if(voltage <= minVoltage) return 0.0f;
+  if(voltage >= maxVoltage) return 100.0f;
+
+  // 线性插值
+  float percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100.0f;
+  
+  // 确保百分比在0~100之间
+  if(percentage < 0.0f) return 0.0f;
+  if(percentage > 100.0f) return 100.0f;
+
+  return percentage;
+}
+
 void battery_card_check()
 {
     static int cnt = 0;
@@ -55,11 +74,22 @@ void battery_card_check()
         ++cnt;
         if (cnt >= 20)
         {
-            int16_t voltage = PowerManager_getBatteryVoltage();
+            float voltage = PowerManager_getBatteryVoltage() / 1000.0f;
+            float totalVoltage = 0.0f;
+            // 多次读取取平均
+              for(int i = 0; i < numReadings; i++) {
+                totalVoltage += voltage;
+                delay(100); // 短暂延迟以稳定读数
+              }
+            
+              float averageVoltage = totalVoltage / numReadings;
+            
+              // 估算电量百分比
+              float batteryPercentage = mapVoltageToPercentage(averageVoltage);
             if (voltage > 0)
             {
                 LOCKLV();
-                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d%%", (voltage - EMPTY_VOLTAGE) % 1000 / 10);
+                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%f%%", batteryPercentage);
                 UNLOCKLV();
             }
             bool charging = PowerManager_isCharging();
@@ -70,7 +100,6 @@ void battery_card_check()
                 {
                     LOCKLV();
                     card_Battery.size(BATTERY_CARD_WIDTH_CHARGING, BATTERY_CARD_HEIGHT);
-                    //lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d.%02dV", voltage / 1000, voltage % 1000 / 10);
                     lv_obj_fade_in(img_bolt, 500, 0);
                     UNLOCKLV();
                 }
