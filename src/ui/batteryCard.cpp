@@ -59,7 +59,7 @@ void battery_card_check()
             if (voltage > 0)
             {
                 LOCKLV();
-                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d%", map(voltage, EMPTY_VOLTAGE / 1000.0, FULL_VOLTAGE / 1000.0, 0, 100));
+                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d%", (voltage - EMPTY_VOLTAGE) / 1000 * 100);
                 UNLOCKLV();
             }
             bool charging = PowerManager_isCharging();
