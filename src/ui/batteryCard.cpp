@@ -60,7 +60,7 @@ void battery_card_check()
         {
             int16_t voltage = PowerManager_getBatteryVoltage();
               // 估算电量百分比
-            int16_t batteryPercentage = ((voltage - minVoltage) % (maxVoltage - minVoltage)) / 10;
+            int16_t batteryPercentage = ((voltage - minVoltage) * 100) / (maxVoltage - minVoltage);
             if(batteryPercentage < 0) batteryPercentage = 0;
             if(batteryPercentage > 100) batteryPercentage = 100;
             if (voltage > 0)
