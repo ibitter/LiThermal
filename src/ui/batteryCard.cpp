@@ -43,17 +43,17 @@ static void battery_card_create()
 }
 
 // 根据电压估算电量百分比
-float mapVoltageToPercentage(float voltage) {
+void mapVoltageToPercentage(int16_t voltage) {
   // 简单线性映射（实际电池电压-电量曲线可能更复杂）
-  if(voltage <= minVoltage) return 0.0f;
-  if(voltage >= maxVoltage) return 100.0f;
+  if(voltage <= minVoltage) return 0;
+  if(voltage >= maxVoltage) return 100;
 
   // 线性插值
-  float percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100.0f;
+  int16_t percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
   
   // 确保百分比在0~100之间
-  if(percentage < 0.0f) return 0.0f;
-  if(percentage > 100.0f) return 100.0f;
+  if(percentage < 0) return 0;
+  if(percentage > 100) return 100;
 
   return percentage;
 }
@@ -74,13 +74,13 @@ void battery_card_check()
         ++cnt;
         if (cnt >= 20)
         {
-            float voltage = PowerManager_getBatteryVoltage() / 1000.0f;
+            int16_t voltage = PowerManager_getBatteryVoltage() / 1000;
               // 估算电量百分比
-              float batteryPercentage = mapVoltageToPercentage(voltage);
+              int16_t batteryPercentage = mapVoltageToPercentage(voltage);
             if (voltage > 0)
             {
                 LOCKLV();
-                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%f%%", batteryPercentage);
+                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%d%%", batteryPercentage);
                 UNLOCKLV();
             }
             bool charging = PowerManager_isCharging();
