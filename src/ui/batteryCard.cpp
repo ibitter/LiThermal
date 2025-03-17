@@ -75,17 +75,8 @@ void battery_card_check()
         if (cnt >= 20)
         {
             float voltage = PowerManager_getBatteryVoltage() / 1000.0f;
-            float totalVoltage = 0.0f;
-            // 多次读取取平均
-              for(int i = 0; i < numReadings; i++) {
-                totalVoltage += voltage;
-                sleep(1); // 短暂延迟以稳定读数
-              }
-            
-              float averageVoltage = totalVoltage / numReadings;
-            
               // 估算电量百分比
-              float batteryPercentage = mapVoltageToPercentage(averageVoltage);
+              float batteryPercentage = mapVoltageToPercentage(voltage);
             if (voltage > 0)
             {
                 LOCKLV();
