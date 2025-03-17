@@ -79,7 +79,7 @@ void battery_card_check()
             // 多次读取取平均
               for(int i = 0; i < numReadings; i++) {
                 totalVoltage += voltage;
-                delay(100); // 短暂延迟以稳定读数
+                sleep(1); // 短暂延迟以稳定读数
               }
             
               float averageVoltage = totalVoltage / numReadings;
