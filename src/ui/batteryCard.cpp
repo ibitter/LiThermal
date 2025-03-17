@@ -1,5 +1,4 @@
 #include <my_main.h>
-#include <string>
 #define BATTERY_CARD_X 250
 #define BATTERY_CARD_SHOW_Y -13
 #define BATTERY_CARD_HIDE_Y -43
@@ -62,12 +61,12 @@ void battery_card_check()
             int16_t voltage = PowerManager_getBatteryVoltage();
               // 估算电量百分比
             int16_t batteryPercentage = ((voltage - minVoltage) * 100) / (maxVoltage - minVoltage);
-            std::string percentage = batteryPercentage + "%";
+            const char* percentage = batteryPercentage + "%";
             if(batteryPercentage >= 100) percentage = "充电中";
             if (voltage > 0)
             {
                 LOCKLV();
-                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), percentage);
+                lv_label_set_text_fmt(lv_obj_get_child(card_Battery.obj, 0), "%s", percentage);
                 UNLOCKLV();
             }
             bool charging = PowerManager_isCharging();
