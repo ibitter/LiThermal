@@ -62,7 +62,7 @@ void battery_card_check()
             int16_t voltage = PowerManager_getBatteryVoltage();
               // 估算电量百分比
             int16_t batteryPercentage = ((voltage - minVoltage) * 100) / (maxVoltage - minVoltage);
-            string percentage = batteryPercentage + "%";
+            std::string percentage = batteryPercentage + "%";
             if(batteryPercentage >= 100) percentage = "充电中";
             if (voltage > 0)
             {
