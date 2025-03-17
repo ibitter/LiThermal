@@ -9,8 +9,8 @@
 const int numReadings = 10; // 读取次数以取平均值，减少噪声
 
 // 电池参数（根据实际电池调整）
-const float maxVoltage = 4.2f; // 锂电池满电电压（V）
-const float minVoltage = 3.0f; // 锂电池低电量电压（V）
+const int16_t maxVoltage = 4200; // 锂电池满电电压（mV）
+const int16_t minVoltage = 3200; // 锂电池低电量电压（mV）
 extern "C" const lv_img_dsc_t bolt;
 
 static MyCard card_Battery;
@@ -74,7 +74,7 @@ void battery_card_check()
         ++cnt;
         if (cnt >= 20)
         {
-            int16_t voltage = PowerManager_getBatteryVoltage() / 1000;
+            int16_t voltage = PowerManager_getBatteryVoltage();
               // 估算电量百分比
               int16_t batteryPercentage = mapVoltageToPercentage(voltage);
             if (voltage > 0)
