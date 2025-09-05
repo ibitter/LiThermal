@@ -11,7 +11,7 @@ const int numReadings = 10; // 读取次数以取平均值，减少噪声
 
 // 电池参数（根据实际电池调整）
 const int16_t maxVoltage = 4200; // 锂电池满电电压（mV）
-const int16_t minVoltage = 3200; // 锂电池低电量电压（mV）
+const int16_t minVoltage = 3000; // 锂电池低电量电压（mV）
 extern "C" const lv_img_dsc_t bolt;
 
 static MyCard card_Battery;
