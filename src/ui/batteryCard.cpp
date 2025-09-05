@@ -1,4 +1,5 @@
 #include <my_main.h>
+#include <cmath>
 #define BATTERY_CARD_X 250
 #define BATTERY_CARD_SHOW_Y -13
 #define BATTERY_CARD_HIDE_Y -43
@@ -60,7 +61,7 @@ void battery_card_check()
         {
             int16_t voltage = PowerManager_getBatteryVoltage();
               // 估算电量百分比
-            int16_t batteryPercentage = ((voltage - minVoltage) * 100) / (maxVoltage - minVoltage);
+            int16_t batteryPercentage = static_cast<int>(ceil(((voltage - minVoltage) * 100) / (maxVoltage - minVoltage)));
             if(batteryPercentage < 0) batteryPercentage = 0;
             if(batteryPercentage > 100) batteryPercentage = 100;
             if (voltage > 0)
