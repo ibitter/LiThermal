@@ -12,8 +12,8 @@
 //======================= 界面布局 =======================
 #define BATTERY_CARD_X              250
 #define BATTERY_CARD_SHOW_Y         -13
-#define BATTERY_CARD_WIDTH          42
-#define BATTERY_CARD_WIDTH_CHARGING (42 + 12)
+#define BATTERY_CARD_WIDTH          43
+#define BATTERY_CARD_WIDTH_CHARGING (56 + 12)
 #define BATTERY_CARD_HEIGHT         33
 
 extern "C" const lv_img_dsc_t bolt;
@@ -85,12 +85,10 @@ static uint8_t battery_voltage_to_level(int16_t mv)
 static lv_color_t battery_get_color(int16_t mv, bool charging)
 {
     if (charging)
-        return lv_color_make(0, 180, 255);   // 充电蓝
-    if (mv >= 4100)
-        return lv_color_make(0, 220, 80);    // 满电绿
+        return lv_color_make(0, 180, 255);   // 充电蓝 
     if (mv <= 3100)
         return lv_color_make(255, 60, 60);   // 低电红
-    return lv_color_white();                 // 默认白
+    return lv_color_make(0, 220, 80);       // 默认绿
 }
 
 //================================================================
@@ -123,8 +121,8 @@ static void battery_card_construct(lv_obj_t *parent)
 
     // 5格电量指示
     int grid_w = 6;
-    int grid_h = 20;
-    int x_start = 1;
+    int grid_h = 18;
+    int x_start = -12;
     int y_pos = 1;
 
     for (int i = 0; i < 5; i++)
