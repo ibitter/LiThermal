@@ -97,6 +97,39 @@ static int serialWrite(int fd, uint8_t command)
 // 全局静态变量（保存历史值，用于平滑）
 static int16_t g_last_voltage = 0;
 
+// 原始底层：只负责读一次串口（不对外使用）
+static int16_t __battery_read_raw_adc(void)
+{
+    char buf[2];
+    int len = -1;
+    int16_t result = 0;
+
+    // 发读命令
+    serialWrite(serial_fd, SERIAL_CMD_READ_ADC);
+    tcflush(serial_fd, TCIOFLUSH);
+
+    // select 超时等待
+    fd_set set;
+    struct timeval timeout;
+    FD_ZERO(&set);
+    FD_SET(serial_fd, &set);
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 80000; // 80ms 超时
+
+    int select_ret = select(serial_fd + 1, &set, NULL, NULL, &timeout);
+    if (select_ret <= 0)
+        return BAT_INVALID_VALUE;
+
+    // 读取2字节
+    len = read(serial_fd, buf, 2);
+    if (len != 2)
+        return BAT_INVALID_VALUE;
+
+    // 拼接16位
+    result = ((uint8_t)buf[0] << 8) | (uint8_t)buf[1];
+    return result;
+}
 // 稳定版：读取电池电压（带滤波）
 int16_t PowerManager_getBatteryVoltage(void)
 {
@@ -138,39 +171,6 @@ int16_t PowerManager_getBatteryVoltage(void)
     return g_last_voltage;
 }
 
-// 原始底层：只负责读一次串口（不对外使用）
-static int16_t __battery_read_raw_adc(void)
-{
-    char buf[2];
-    int len = -1;
-    int16_t result = 0;
-
-    // 发读命令
-    serialWrite(serial_fd, SERIAL_CMD_READ_ADC);
-    tcflush(serial_fd, TCIOFLUSH);
-
-    // select 超时等待
-    fd_set set;
-    struct timeval timeout;
-    FD_ZERO(&set);
-    FD_SET(serial_fd, &set);
-
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 80000; // 80ms 超时
-
-    int select_ret = select(serial_fd + 1, &set, NULL, NULL, &timeout);
-    if (select_ret <= 0)
-        return BAT_INVALID_VALUE;
-
-    // 读取2字节
-    len = read(serial_fd, buf, 2);
-    if (len != 2)
-        return BAT_INVALID_VALUE;
-
-    // 拼接16位
-    result = ((uint8_t)buf[0] << 8) | (uint8_t)buf[1];
-    return result;
-}
 
 bool PowerManager_isCharging()
 {
