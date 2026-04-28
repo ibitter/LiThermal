@@ -12,9 +12,8 @@
 //======================= 界面布局 =======================
 #define BATTERY_CARD_X              250
 #define BATTERY_CARD_SHOW_Y         -13
-#define BATTERY_CARD_HIDE_Y         -43
-#define BATTERY_CARD_WIDTH          56
-#define BATTERY_CARD_WIDTH_CHARGING (56 + 12)
+#define BATTERY_CARD_WIDTH          42
+#define BATTERY_CARD_WIDTH_CHARGING (42 + 12)
 #define BATTERY_CARD_HEIGHT         33
 
 extern "C" const lv_img_dsc_t bolt;
@@ -25,7 +24,7 @@ static lv_obj_t *img_bolt = NULL;
 static lv_obj_t *bat_grid[5];  // 5格电量指示
 
 //======================= 状态变量 =======================
-static bool expanded = false;
+static bool inited = false;
 static int16_t filter_buffer[BAT_FILTER_COUNT] = {0};
 static uint8_t filter_index = 0;
 static int16_t last_stable_voltage = 3500;
@@ -36,7 +35,6 @@ static int16_t battery_get_filtered_voltage(void);
 static uint8_t battery_voltage_to_level(int16_t mv);
 static lv_color_t battery_get_color(int16_t mv, bool charging);
 static void battery_card_construct(lv_obj_t *parent);
-static void battery_card_create(void);
 static void battery_update_grid(uint8_t level, lv_color_t color);
 
 //================================================================
@@ -115,7 +113,7 @@ static void battery_update_grid(uint8_t level, lv_color_t color)
 }
 
 //================================================================
-// UI构建：5格电池 + 充电图标（无任何文字）
+// UI构建：5格电池 + 充电图标
 //================================================================
 static void battery_card_construct(lv_obj_t *parent)
 {
@@ -123,11 +121,11 @@ static void battery_card_construct(lv_obj_t *parent)
     lv_obj_set_style_bg_opa(parent, 128, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(parent, 0, 0);
 
-    // 创建 5格 电量指示
-    int grid_w = 4;
-    int grid_h = 10;
-    int x_start = 8;
-    int y_pos = 11;
+    // 5格电量指示
+    int grid_w = 6;
+    int grid_h = 20;
+    int x_start = 1;
+    int y_pos = 1;
 
     for (int i = 0; i < 5; i++)
     {
@@ -148,76 +146,62 @@ static void battery_card_construct(lv_obj_t *parent)
 }
 
 //================================================================
-// 创建卡片
-//================================================================
-static void battery_card_create()
-{
-    if (card_Battery.obj == NULL || lv_obj_is_valid(card_Battery.obj) == false)
-    {
-        card_Battery.create(lv_layer_sys(), BATTERY_CARD_X, BATTERY_CARD_HIDE_Y, BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT, LV_ALIGN_TOP_LEFT);
-        card_Battery.show(CARD_ANIM_NONE);
-        battery_card_construct(card_Battery.obj);
-    }
-}
-
-//================================================================
-// 主刷新逻辑
+// 电池主函数（已删除所有 current_mode 判断）
 //================================================================
 void battery_card_check()
 {
     static int cnt = 0;
 
-    if (current_mode == MODE_MAINMENU)
+    // 只初始化一次（永久显示，不再隐藏）
+    if (!inited)
     {
-        if (expanded == false)
+        inited = true;
+        LOCKLV();
+        // 创建卡片
+        if (card_Battery.obj == NULL || !lv_obj_is_valid(card_Battery.obj))
         {
-            expanded = true;
-            LOCKLV();
-            battery_card_create();
-            card_Battery.move(BATTERY_CARD_X, BATTERY_CARD_SHOW_Y);
-            UNLOCKLV();
-            cnt = 20;
+            card_Battery.create(lv_layer_sys(),
+                BATTERY_CARD_X, BATTERY_CARD_SHOW_Y,
+                BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT,
+                LV_ALIGN_TOP_LEFT);
+            card_Battery.show(CARD_ANIM_NONE);
+            battery_card_construct(card_Battery.obj);
         }
-
-        if (++cnt >= 20)
-        {
-            cnt = 0;
-
-            int16_t voltage_mv = battery_get_filtered_voltage();
-            uint8_t level = battery_voltage_to_level(voltage_mv);
-            bool charging = PowerManager_isCharging();
-            lv_color_t color = battery_get_color(voltage_mv, charging);
-
-            LOCKLV();
-            battery_update_grid(level, color);  // 只更新5格电量
-            UNLOCKLV();
-
-            // 充电状态动画
-            if (charging != last_charging)
-            {
-                last_charging = last_charging;
-                LOCKLV();
-                if (charging)
-                {
-                    card_Battery.size(BATTERY_CARD_WIDTH_CHARGING, BATTERY_CARD_HEIGHT);
-                    lv_obj_fade_in(img_bolt, 500, 0);
-                }
-                else
-                {
-                    card_Battery.size(BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT);
-                    lv_obj_fade_out(img_bolt, 300, 0);
-                }
-                UNLOCKLV();
-            }
-        }
+        // 固定显示位置
+        card_Battery.move(BATTERY_CARD_X, BATTERY_CARD_SHOW_Y);
+        UNLOCKLV();
+        cnt = 20;
     }
-    else
+
+    // 定时刷新
+    if (++cnt >= 20)
     {
-        if (expanded)
+        cnt = 0;
+
+        int16_t voltage_mv = battery_get_filtered_voltage();
+        uint8_t level = battery_voltage_to_level(voltage_mv);
+        bool charging = PowerManager_isCharging();
+        lv_color_t color = battery_get_color(voltage_mv, charging);
+
+        LOCKLV();
+        battery_update_grid(level, color);
+        UNLOCKLV();
+
+        // 充电状态动画
+        if (charging != last_charging)
         {
-            expanded = false;
+            last_charging = charging;
             LOCKLV();
-            card_Battery.move(BATTERY_CARD_X, BATTERY_CARD_HIDE_Y);
+            if (charging)
+            {
+                card_Battery.size(BATTERY_CARD_WIDTH_CHARGING, BATTERY_CARD_HEIGHT);
+                lv_obj_fade_in(img_bolt, 500, 0);
+            }
+            else
+            {
+                card_Battery.size(BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT);
+                lv_obj_fade_out(img_bolt, 300, 0);
+            }
             UNLOCKLV();
         }
     }
