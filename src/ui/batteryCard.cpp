@@ -4,12 +4,12 @@
 #include <stdlib.h>
 
 //======================= 电池参数配置 =======================
-#define BAT_FULL_MV         4200    // 满电 4.2V
-#define BAT_EMPTY_MV        3000    // 空电 3.0V
-#define BAT_LOW_MV          3350    // 低电量阈值
-#define BAT_CRIT_MV         3150    // 极低电量阈值
-#define BAT_FILTER_COUNT    5       // 滤波采样次数
-#define BAT_MAX_DELTA_MV    100     // 最大允许波动 100mV
+#define BAT_FULL_MV         4200
+#define BAT_EMPTY_MV        3000
+#define BAT_LOW_MV          3300
+#define BAT_CRIT_MV         3100
+#define BAT_FILTER_COUNT    5
+#define BAT_MAX_DELTA_MV    150
 
 //======================= 界面布局 =======================
 #define BATTERY_CARD_X              250
@@ -24,7 +24,7 @@ extern "C" const lv_img_dsc_t bolt;
 //======================= 全局UI对象 =======================
 static MyCard card_Battery;
 static lv_obj_t *img_bolt = NULL;
-static lv_obj_t *lbl_battery = NULL;
+//static lv_obj_t *lbl_battery = NULL;
 static lv_obj_t *lbl_battery_percent = NULL;
 
 //======================= 状态变量 =======================
@@ -42,15 +42,17 @@ static void battery_card_construct(lv_obj_t *parent);
 static void battery_card_create(void);
 
 //================================================================
-// 滑动窗口+限幅滤波 稳定电压
+// 滤波：稳定电压
 //================================================================
 static int16_t battery_get_filtered_voltage(void)
 {
     int16_t raw = PowerManager_getBatteryVoltage();
-    if (raw <= 0) return last_stable_voltage;
+    if (raw <= 0)
+        return last_stable_voltage;
 
     filter_buffer[filter_index++] = raw;
-    if (filter_index >= BAT_FILTER_COUNT) filter_index = 0;
+    if (filter_index >= BAT_FILTER_COUNT)
+        filter_index = 0;
 
     int32_t sum = 0;
     for (uint8_t i = 0; i < BAT_FILTER_COUNT; i++)
@@ -69,7 +71,7 @@ static int16_t battery_get_filtered_voltage(void)
 }
 
 //================================================================
-// 电压转电量百分比
+// 电压转百分比
 //================================================================
 static uint8_t battery_voltage_to_percent(int16_t mv)
 {
@@ -79,38 +81,23 @@ static uint8_t battery_voltage_to_percent(int16_t mv)
 }
 
 //================================================================
-// 核心：动态文字颜色
-// 充电→蓝色 / 满电→绿色 / 正常→白色 / 低电→黄色 / 极低→红色
+// 文字颜色
 //================================================================
 static lv_color_t battery_get_text_color(int16_t mv, bool charging)
 {
-    // 充电优先：全局蓝色
-    if(charging)
-    {
-        return lv_color_make(0, 180, 255);
-    }
-
-    // 满电绿色
-    if(mv >= BAT_FULL_MV - 50)
-    {
-        return lv_color_make(0, 220, 80);
-    }
-    // 极低电量 红色
-    else if(mv <= BAT_CRIT_MV)
-    {
-        return lv_color_make(255, 60, 60);
-    }
-    // 低电量 黄色
-    else if(mv <= BAT_LOW_MV)
-    {
-        return lv_color_make(255, 200, 0);
-    }
-    // 正常 白色
-    return lv_color_white();
+    if (charging)
+        return lv_color_make(0, 180, 255);   // 充电蓝
+    if (mv >= 4150)
+        return lv_color_make(0, 220, 80);    // 满电绿
+    if (mv <= BAT_CRIT_MV)
+        return lv_color_make(255, 60, 60);   // 极低红
+    if (mv <= BAT_LOW_MV)
+        return lv_color_make(255, 200, 0);   // 低电黄
+    return lv_color_white();                 // 默认白
 }
 
 //================================================================
-// 电池卡片UI构建
+// UI构建
 //================================================================
 static void battery_card_construct(lv_obj_t *parent)
 {
@@ -118,19 +105,19 @@ static void battery_card_construct(lv_obj_t *parent)
     lv_obj_set_style_bg_opa(parent, 128, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(parent, 0, 0);
 
-    // 电压标签
-    lbl_battery = lv_label_create(parent);
-    lv_obj_set_align(lbl_battery, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_x(lbl_battery, -7);
-    lv_label_set_text(lbl_battery, "0.00V");
+    // 电压标签（完全保持你原来的位置）
+    //lbl_battery = lv_label_create(parent);
+    //lv_obj_set_align(lbl_battery, LV_ALIGN_TOP_LEFT);
+    //lv_obj_set_x(lbl_battery, -7);
+    //lv_label_set_text(lbl_battery, "0.00V");
 
-    // 百分比标签
+    // 百分比标签（安全位置）
     lbl_battery_percent = lv_label_create(parent);
-    lv_obj_set_align(lbl_battery_percent, LV_ALIGN_BOTTOM_LEFT);
+    lv_obj_set_align(lbl_battery_percent, LV_ALIGN_TOP_LEFT);
     lv_obj_set_x(lbl_battery_percent, -7);
     lv_label_set_text(lbl_battery_percent, "0%");
 
-    // 充电闪电图标
+    // 闪电图标
     img_bolt = lv_img_create(parent);
     lv_img_set_src(img_bolt, &bolt);
     lv_obj_set_pos(img_bolt, 36, 2);
@@ -138,32 +125,28 @@ static void battery_card_construct(lv_obj_t *parent)
 }
 
 //================================================================
-// 创建电池卡片
+// 创建卡片
 //================================================================
-static void battery_card_create(void)
+static void battery_card_create()
 {
-    if (card_Battery.obj == NULL || !lv_obj_is_valid(card_Battery.obj))
+    if (card_Battery.obj == NULL || lv_obj_is_valid(card_Battery.obj) == false)
     {
-        card_Battery.create(lv_layer_sys(),
-            BATTERY_CARD_X, BATTERY_CARD_HIDE_Y,
-            BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT,
-            LV_ALIGN_TOP_LEFT);
-
+        card_Battery.create(lv_layer_sys(), BATTERY_CARD_X, BATTERY_CARD_HIDE_Y, BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT, LV_ALIGN_TOP_LEFT);
         card_Battery.show(CARD_ANIM_NONE);
         battery_card_construct(card_Battery.obj);
     }
 }
 
 //================================================================
-// 主刷新逻辑（原有接口完全保留）
+// 主检查函数
 //================================================================
-void battery_card_check(void)
+void battery_card_check()
 {
     static int cnt = 0;
-
+    static bool last_charging = false;
     if (current_mode == MODE_MAINMENU)
     {
-        if (!expanded)
+        if (expanded == false)
         {
             expanded = true;
             LOCKLV();
@@ -172,28 +155,28 @@ void battery_card_check(void)
             UNLOCKLV();
             cnt = 20;
         }
-
-        if (++cnt >= 20)
+        ++cnt;
+        if (cnt >= 20)
         {
             cnt = 0;
 
+            // 读取稳定电压
             int16_t voltage_mv = battery_get_filtered_voltage();
             uint8_t percent = battery_voltage_to_percent(voltage_mv);
             bool charging = PowerManager_isCharging();
-            lv_color_t text_color = battery_get_text_color(voltage_mv, charging);
+            lv_color_t color = battery_get_text_color(voltage_mv, charging);
 
             LOCKLV();
-            // 更新电压+百分比文字
-            lv_label_set_text_fmt(lbl_battery, "%d.%02dV",
-                voltage_mv / 1000, (voltage_mv % 1000) / 10);
+            // 更新电压
+            //lv_label_set_text_fmt(lbl_battery, "%d.%02dV", voltage_mv / 1000, (voltage_mv % 1000) / 10);
+            // 更新百分比
             lv_label_set_text_fmt(lbl_battery_percent, "%d%%", percent);
-
-            // 全局文字上色
-            lv_obj_set_style_text_color(lbl_battery, text_color, 0);
-            lv_obj_set_style_text_color(lbl_battery_percent, text_color, 0);
+            // 设置颜色
+            //lv_obj_set_style_text_color(lbl_battery, color, 0);
+            lv_obj_set_style_text_color(lbl_battery_percent, color, 0);
             UNLOCKLV();
 
-            // 充电状态切换卡片宽度+闪电动画
+            // 充电状态切换
             if (charging != last_charging)
             {
                 last_charging = charging;
