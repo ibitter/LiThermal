@@ -121,9 +121,9 @@ static void battery_card_construct(lv_obj_t *parent)
 
     // 5格电量指示
     int grid_w = 6;
-    int grid_h = 18;
-    int x_start = -12;
-    int y_pos = 1;
+    int grid_h = 16;
+    int x_start = -10;
+    int y_pos = 2;
 
     for (int i = 0; i < 5; i++)
     {
@@ -144,7 +144,7 @@ static void battery_card_construct(lv_obj_t *parent)
 }
 
 //================================================================
-// 电池主函数（已删除所有 current_mode 判断）
+// 电池主函数
 //================================================================
 void battery_card_check()
 {
@@ -192,7 +192,7 @@ void battery_card_check()
             LOCKLV();
             if (charging)
             {
-                card_Battery.size(BATTERY_CARD_WIDTH_CHARGING, BATTERY_CARD_HEIGHT);
+                card_Battery.size(BATTERY_CARD_WIDTH, BATTERY_CARD_HEIGHT);
                 lv_obj_fade_in(img_bolt, 500, 0);
             }
             else
