@@ -40,9 +40,6 @@ void battery_card_check()
 {
     static int cnt = 0;
     static bool last_charging = false;
-    if (!inited)
-    {
-        inited = true;
         if (expanded == false)
         {
             expanded = true;
@@ -83,15 +80,4 @@ void battery_card_check()
             }
             cnt = 0;
         }
-    }
-    else
-    {
-        if (expanded)
-        {
-            expanded = false;
-            LOCKLV();
-            card_Battery.move(BATTERY_CARD_X, BATTERY_CARD_HIDE_Y);
-            UNLOCKLV();
-        }
-    }
 }
