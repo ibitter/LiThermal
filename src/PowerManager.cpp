@@ -89,88 +89,36 @@ static int serialWrite(int fd, uint8_t command)
 #define SERIAL_CMD_USBMODE_DIRECT 0x13
 #define SERIAL_CMD_IS_CHARGING 0x59
 
-// 滤波参数（可根据你的精度调整）
-#define BAT_FILTER_COUNT        5       // 连续采样5次
-#define BAT_MAX_DELTA_VOLTAGE   50      // 最大允许波动 50mV
-#define BAT_INVALID_VALUE       -1
-
-// 全局静态变量（保存历史值，用于平滑）
-static int16_t g_last_voltage = 0;
-
-// 原始底层：只负责读一次串口（不对外使用）
-static int16_t __battery_read_raw_adc(void)
+int16_t PowerManager_getBatteryVoltage()
 {
     char buf[2];
     int len = -1;
     int16_t result = 0;
-
-    // 发读命令
     serialWrite(serial_fd, SERIAL_CMD_READ_ADC);
-    tcflush(serial_fd, TCIOFLUSH);
-
-    // select 超时等待
+    tcflush(serial_fd, TCIOFLUSH); // Flush serial buffer
+    /*author: https://stackoverflow.com/a/2918709 */
     fd_set set;
     struct timeval timeout;
-    FD_ZERO(&set);
-    FD_SET(serial_fd, &set);
-
+    FD_ZERO(&set);           /* clear the set */
+    FD_SET(serial_fd, &set); /* add our file descriptor to the set */
     timeout.tv_sec = 0;
-    timeout.tv_usec = 80000; // 80ms 超时
+    timeout.tv_usec = 100000;
 
-    int select_ret = select(serial_fd + 1, &set, NULL, NULL, &timeout);
-    if (select_ret <= 0)
-        return BAT_INVALID_VALUE;
+    int select_result = select(serial_fd + 1, &set, NULL, NULL, &timeout);
+    if (select_result == -1)
+        return -1; /* an error accured */
+    else if (select_result == 0)
+        return -1; /* a timeout occured */
+    else
+        len = read(serial_fd, buf, 2);
 
-    // 读取2字节
-    len = read(serial_fd, buf, 2);
-    if (len != 2)
-        return BAT_INVALID_VALUE;
-
-    // 拼接16位
-    result = ((uint8_t)buf[0] << 8) | (uint8_t)buf[1];
+    if (len < 0)
+        return -1;
+    result = buf[0];
+    result <<= 8;
+    result |= buf[1];
     return result;
 }
-// 稳定版：读取电池电压（带滤波）
-int16_t PowerManager_getBatteryVoltage(void)
-{
-    int16_t adc_buf[BAT_FILTER_COUNT] = {0};
-    int32_t adc_sum = 0;
-    uint8_t valid_cnt = 0;
-
-    // ====================== 1. 连续采样 N 次 ======================
-    for (int i = 0; i < BAT_FILTER_COUNT; i++)
-    {
-        // 调用原始单次读取函数
-        int16_t val = __battery_read_raw_adc();
-
-        // 失败则重试
-        if (val == BAT_INVALID_VALUE)
-        {
-            i--;
-            continue;
-        }
-
-        adc_buf[i] = val;
-        adc_sum += val;
-        valid_cnt++;
-    }
-
-    // ====================== 2. 求平均值 ======================
-    int32_t avg_adc = adc_sum / valid_cnt;
-
-    // ====================== 3. 限幅滤波（防止跳变） ======================
-    int32_t delta = abs(avg_adc - g_last_voltage);
-    if (g_last_voltage != 0 && delta > BAT_MAX_DELTA_VOLTAGE)
-    {
-        // 波动太大 → 不更新，返回上一次稳定值
-        return g_last_voltage;
-    }
-
-    // ====================== 4. 保存并返回 ======================
-    g_last_voltage = (int16_t)avg_adc;
-    return g_last_voltage;
-}
-
 
 bool PowerManager_isCharging()
 {
